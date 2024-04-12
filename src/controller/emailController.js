@@ -85,19 +85,21 @@ const sendMailWithCount = async (count) => {
 cron.schedule('*/5 * * * *', async () => {
     try {
         // Fetch email count from the database
-        const emailCount = await sequelize.query('SELECT emailCount FROM emailcount', { type: sequelize.QueryTypes.SELECT });
-        const count = emailCount[0].emailCount;
+        const [result, metadata] = await sequelize.query('SELECT emailCount FROM emailcount');
+        let count = result[0].emailCount;
+        
+        // Increment email count
+        count++;
 
-        // Send email with the count
+        // Send email with the updated count
         const info = await sendMailWithCount(count);
-
         console.log(`Email sent with count ${count}:`, info.response);
     } catch (error) {
         console.error("Error sending email:", error);
     }
 });
 
-// Endpoint to tsending email with count
+// Endpoint to sending email with count
 exports.sendMailCount = async (req, res) => {
     try {
         // Fetch email count from the database
