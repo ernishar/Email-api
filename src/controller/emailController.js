@@ -5,7 +5,7 @@ const sequelize = require('../utils/sequelize');
 // Send Mail
 exports.sendMail = async (req, res) => {
     const { email, subject, message } = req.body;
-    const attachment = req.file; 
+    const attachment = req.file;
 
     console.log(req.body);
 
@@ -20,7 +20,7 @@ exports.sendMail = async (req, res) => {
 
         const mailOptions = {
             from: process.env.EMAIL,
-            to: email, 
+            to: email,
             subject: subject || "Sending Email With React And Nodejs",
             html: `<h1>${message}</h1>`
         };
@@ -55,65 +55,143 @@ exports.sendMail = async (req, res) => {
     }
 };
 
+// exports.sendMailCount = async (req,res) => {
+//     try {
+//       cron.schedule("*/5 * * * *", async () => {
+//         await sequelize.query(
+//           "UPDATE emailcount SET emailCount = emailCount + 1",
+//           {
+//             type: sequelize.QueryTypes.UPDATE,
+//           }
+//         );
+  
+//         // Fetch the email count
+//         const [countNo] = await sequelize.query("SELECT * FROM emailCount", {
+//           type: sequelize.QueryTypes.SELECT,
+//         });
+  
+//         if (countNo) {
+//           const count = countNo.emailCount;
+  
+//           const transporter = nodemailer.createTransport({
+//             service: "gmail",
+//             auth: {
+//               user: process.env.EMAIL,
+//               pass: process.env.PASSWORD,
+//             },
+//           });
+  
+//           const mailOptions = {
+//             from: process.env.EMAIL,
+//             to: process.env.EMAIL,
+//             subject: `Hello, Update from node server!`,
+//             text: `Number of emails sent ${count}`,
+//           };
+  
+//           transporter.sendMail(mailOptions, (error) => {
+//             if (error) {
+//               console.error("Error sending email:", error);
+//             } else {
+//                 res.status(201).json({ status: 201, message: "Success" });
+//                 console.log(`Email sent with count ${count}:`);
+//             }
+//           });
+//         }
+//       });
+//     } catch (error) {
+//       console.error("Error", error);
+//     }
+//   };
+
 // Function to send email with count
 const sendMailWithCount = async (count) => {
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.PASSWORD
-            }
-        });
+  try {
+      const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+              user: process.env.EMAIL,
+              pass: process.env.PASSWORD
+          }
+      });
 
-        // Construct mail options
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: process.env.EMAIL, 
-            subject: "Email Count",
-            html: `<h1>Number of emails sent: ${count}</h1>`
-        };
+      // Construct mail options
+      const mailOptions = {
+          from: process.env.EMAIL,
+          to: process.env.EMAIL, 
+          subject: "Email Count",
+          html: `<h1>Number of emails sent: ${count}</h1>`
+      };
 
-        // Send mail
-        return await transporter.sendMail(mailOptions);
-    } catch (error) {
-        throw new Error("Error sending email: " + error.message);
-    }
+      // Send mail
+      return await transporter.sendMail(mailOptions);
+  } catch (error) {
+      throw new Error("Error sending email: " + error.message);
+  }
 };
 
 // Schedule cron job to send email with count every 5 minutes
-cron.schedule('*/5 * * * *', async () => {
-    try {
-        // Fetch email count from the database
-        const [result, metadata] = await sequelize.query('SELECT emailCount FROM emailcount');
-        let count = result[0].emailCount;
-        
-        // Increment email count
-        count++;
+cron.schedule('*/1 * * * *', async () => {
+  try {
+      // Update the email count in the database
+      const [result, metadata] = await sequelize.query('UPDATE emailcount SET emailCount = emailCount + 1');
+      
+      // Check if the update was successful
+      if (metadata && metadata.changedRows > 0) {
+          // Fetch the updated email count from the database
+          const [countResult, countMetadata] = await sequelize.query('SELECT emailCount FROM emailcount');
+          const count = countResult[0].emailCount;
 
-        // Send email with the updated count
-        const info = await sendMailWithCount(count);
-        console.log(`Email sent with count ${count}:`, info.response);
-    } catch (error) {
-        console.error("Error sending email:", error);
-    }
+          // Send email with the updated count
+          const info = await sendMailWithCount(count);
+          console.log(`Email sent with count ${count}:`, info.response);
+      } else {
+          throw new Error("Failed to update email count in the database.");
+      }
+  } catch (error) {
+      console.error("Error sending email:", error);
+  }
 });
 
 // Endpoint to sending email with count
 exports.sendMailCount = async (req, res) => {
-    try {
-        // Fetch email count from the database
-        const emailCount = await sequelize.query('SELECT emailCount FROM emailcount', { type: sequelize.QueryTypes.SELECT });
-        const count = emailCount[0].emailCount;
+  try {
+      // Fetch email count from the database
+      const [emailCount, metadata] = await sequelize.query('SELECT emailCount FROM emailcount');
+      
+      // Check if the query returned any result
+      if (emailCount && emailCount.length > 0) {
+          const count = emailCount[0].emailCount;
 
-        // Send email with the count
-        const info = await sendMailWithCount(count);
+          // Send email with the count
+          const info = await sendMailWithCount(count);
+          console.log(`Email sent with count ${count}:`, info.response);
 
-        console.log(`Email sent with count ${count}:`, info.response);
+          res.status(201).json({ status: 201, message: "Success" });
+      } else {
+          throw new Error("No email count found in the database.");
+      }
+  } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(400).json({ status: 400, error: error.message });
+  }
+};
 
-        res.status(201).json({ status: 201, message: "Success" });
-    } catch (error) {
-        console.error("Error sending email:", error);
-        res.status(400).json({ status: 400, error: error.message });
-    }
+
+// Endpoint to sending email with count
+exports.sendMailCount = async (req, res) => {
+  try {
+      // Fetch email count from the database
+      const emailCount = await sequelize.query('SELECT emailCount FROM emailcount', { type: sequelize.QueryTypes.SELECT });
+      const count = emailCount[0].emailCount;
+
+      // Send email with the count
+      const info = await sendMailWithCount(count);
+
+      console.log(`Email sent with count ${count}:`, info.response);
+
+      res.status(201).json({ status: 201, message: "Success" });
+  } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(400).json({ status: 400, error: error.message });
+  }
 };
