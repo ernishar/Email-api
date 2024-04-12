@@ -55,55 +55,6 @@ exports.sendMail = async (req, res) => {
     }
 };
 
-// exports.sendMailCount = async (req,res) => {
-//     try {
-//       cron.schedule("*/5 * * * *", async () => {
-//         await sequelize.query(
-//           "UPDATE emailcount SET emailCount = emailCount + 1",
-//           {
-//             type: sequelize.QueryTypes.UPDATE,
-//           }
-//         );
-  
-//         // Fetch the email count
-//         const [countNo] = await sequelize.query("SELECT * FROM emailCount", {
-//           type: sequelize.QueryTypes.SELECT,
-//         });
-  
-//         if (countNo) {
-//           const count = countNo.emailCount;
-  
-//           const transporter = nodemailer.createTransport({
-//             service: "gmail",
-//             auth: {
-//               user: process.env.EMAIL,
-//               pass: process.env.PASSWORD,
-//             },
-//           });
-  
-//           const mailOptions = {
-//             from: process.env.EMAIL,
-//             to: process.env.EMAIL,
-//             subject: `Hello, Update from node server!`,
-//             text: `Number of emails sent ${count}`,
-//           };
-  
-//           transporter.sendMail(mailOptions, (error) => {
-//             if (error) {
-//               console.error("Error sending email:", error);
-//             } else {
-//                 res.status(201).json({ status: 201, message: "Success" });
-//                 console.log(`Email sent with count ${count}:`);
-//             }
-//           });
-//         }
-//       });
-//     } catch (error) {
-//       console.error("Error", error);
-//     }
-//   };
-
-// Function to send email with count
 const sendMailWithCount = async (count) => {
   try {
       const transporter = nodemailer.createTransport({
